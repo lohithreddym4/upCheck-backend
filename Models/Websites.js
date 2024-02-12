@@ -35,6 +35,12 @@ const Reports=mg.Schema({
     }
     
 })
+const Disrupts=mg.Schema({
+    date: {
+        type: String
+    }
+    
+})
 const WebsiteSchema = new mg.Schema({
   url: {
     type: String,
@@ -54,7 +60,8 @@ const WebsiteSchema = new mg.Schema({
     default: 'up',
   },
   comments: [CommentSchema],
-  reports:[Reports]
+  reports:[Reports],
+  disrupts:[Disrupts]
 });
 
 const Website = mg.model('Website', WebsiteSchema);

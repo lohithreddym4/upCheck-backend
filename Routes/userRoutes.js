@@ -16,8 +16,10 @@ router.post('/add-website', async (req, res) => {
         if (existingSite) {
             return res.send("Website already exists");
         } else {
-            const newSite = new Website({ name, url, hostname });
-            await newSite.save();
+            if(await upCheck(url)){            
+                const newSite = new Website({ name, url, hostname });
+                await newSite.save();
+            }
             return res.send("Website added");
         }
     } catch (error) {
@@ -213,7 +215,11 @@ router.post('/remove-report', async (req, res) => {
 });
 router.get('/get-reports', async (req, res) => {
     try {
-        const reports = await Website.find({},'reports');
+        let url=req.body.url;
+        if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+            url = `http://${url}`;
+        }
+        const reports = await Website.find({url},'reports');
         res.send(reports);
     } catch (error) {
         console.error('Error fetching reports:', error);
@@ -306,7 +312,59 @@ router.get('/get-recent-disrupts',async(req,res)=>{
         res.status(500).send("Internal Server Error");
     }
 })
+router.post('/add-disrupt', async (req, res) => {
+    try {
+        let { url} = req.body;
+        let status=await upCheck(url);
+        if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+            url = `http://${url}`;
+        }
+        const website = await Website.findOne({ hostname: new URL(url).hostname});
 
+        if (!website) {
+            return res.status(404).send("Website not found");
+        }
+
+        const newReport = {
+            date: new Date().toUTCString()
+        };
+
+        website.disrupts.push(newReport);
+        await website.save();
+        res.send("Report added successfully");
+    } catch (error) {
+        console.error('Error adding report:', error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+router.post('/remove-disrupt', async (req, res) => {
+    try {
+        let { url, disruptId } = req.body;
+        if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+            url = `http://${url}`;
+        }
+        const website = await Website.findOne({ hostname: new URL(url).hostname});
+
+        if (!website) {
+            return res.status(404).send("Website not found");
+        }
+
+        website.reports.pull({ _id: disruptId });
+        await website.save();
+        res.send("Report removed successfully");
+    } catch (error) {
+        console.error('Error removing report:', error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+router.get('/get-disrupts', async (req, res) => {
+    try {
+        const reports = await Website.find({},'disrupts');
+        res.send(reports);
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        res.status(500).send("Internal Server Error");
+}})
 
 
 

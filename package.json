@@ -1,8 +1,12 @@
 {
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
     "dotenv": "^16.4.2",
     "express": "^4.18.2",
+    "meta-scraper": "^2.1.3",
+    "metascraper": "^5.44.0",
+    "metascraper-description": "^5.44.0",
     "mongoose": "^7.5.3",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",

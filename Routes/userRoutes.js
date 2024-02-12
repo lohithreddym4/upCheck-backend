@@ -4,10 +4,13 @@ const upCheck = require('../upCheck/upCheck.js');
 const Website = require('../Models/Websites.js');
 const Reports=require('../Models/Reports.js')
 const Disrupts=require('../Models/Disrupts.js')
+const WHOIS_API_KEY = '75c84088e1mshf9539f1e2d0626ep1ffc03jsnd78b21ea46b0';
+const WHOIS_API_HOST = 'whois-by-api-ninjas.p.rapidapi.com';
+const WHOIS_API_BASE_URL = 'https://whois-by-api-ninjas.p.rapidapi.com/v1/whois?domain=';
 
 router.post('/add-website', async (req, res) => {
     try {
-        let { name, url } = req.body;
+        let { url } = req.body;
         if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
             url = `http://${url}`;
         }
@@ -17,7 +20,12 @@ router.post('/add-website', async (req, res) => {
             return res.send("Website already exists");
         } else {
             if(await upCheck(url)){            
-                const newSite = new Website({ name, url, hostname });
+                const status = await upCheck(url);
+                const whois = await getWhoisData(hostname);
+                let domain=whois.domain_name[0];
+                let name=domain.substring(0,domain.lastIndexOf('.')) || hostname.startsWith('www.') ? hostname.substring(4,hostname.lastIndexOf('.')) : hostname.substring(0,hostname.lastIndexOf('.'));
+                console.log(name);
+                const newSite = new Website({ name, url,hostname, whois });
                 await newSite.save();
             }
             return res.send("Website added");
@@ -178,15 +186,34 @@ router.post('/add-report', async (req, res) => {
             return res.status(404).send("Website not found");
         }
 
-        const newReport = {
+        const report = {
             status: status,
             feedback: feedback,
             country:country,
             date: new Date().toUTCString()
         };
-
-        website.reports.push(newReport);
+        website.reports.push(report);
         await website.save();
+        const newReport = {
+            date: new Date().toUTCString(),
+        };
+
+        const existingReports = await Reports.findOne({ hostname:new URL(url).hostname });
+
+        if (existingReports) {
+            existingReports.reports[0].date = newReport.date;
+            await existingReports.save();
+        } else {
+            const newReports = new Reports({
+                url,
+                hostname: new URL(url).hostname,
+                reports: [newReport],
+            });
+            await newReports.save();
+        }
+        
+
+
         res.send("Report added successfully");
     } catch (error) {
         console.error('Error adding report:', error);
@@ -227,7 +254,11 @@ router.get('/get-reports', async (req, res) => {
 }})
 router.get('/get-comments', async (req, res) => {
     try {
-        const comments = await Website.find({},'comments');
+        let url=req.body.url;
+        if(!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))){
+            url = `http://${url}`;
+        }
+        const comments = await Website.find({hostname:new URL(url).hostname},'comments');
         res.send(comments);
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -306,6 +337,7 @@ router.get('/get-recent-disrupts',async(req,res)=>{
     try {
         const sortedReports = await Disrupts.find().sort({ 'disrupts.date': -1 }).limit(10);
 
+        
         res.send(sortedReports);
     } catch (error) {
         console.error('Error fetching disrupts:', error);
@@ -369,6 +401,77 @@ router.get('/get-disrupts', async (req, res) => {
         console.error('Error fetching reports:', error);
         res.status(500).send("Internal Server Error");
 }})
+async function getWhoisData(url) {
+    const apiUrl = `${WHOIS_API_BASE_URL}${url}`;
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': WHOIS_API_KEY,
+        'X-RapidAPI-Host': WHOIS_API_HOST,
+      },
+    };
+  
+    try {
+      const response = await fetch(apiUrl, options);
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error fetching Whois data:', error);
+      return {};
+    }
+}
+router.post('/add-multiple-urls',async(req,res)=>{
+    try {
+        let urls = req.body.urls;
+        let i=0;
+        for (const url of urls) {
+            if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+                if(url.startsWith('www.')){
+                    urls[i] = `http://${url}`;
+                }
+            }
+          const hostname = new URL(url).hostname;
+          const existingSite = await Website.findOne({ hostname });
+          if (existingSite) {
+            console.log(`Website ${hostname} already exists`);
+            continue;
+          }
+          const status = await upCheck(url);
+            const whois = await getWhoisData(hostname);
+            let domain=whois.domain_name[0];
+            let name=domain.slice(0,domain.lastIndexOf('.')) || hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'));
+            const newSite = new Website({ name, url,status,hostname, whois });
+            await newSite.save();
+            console.log(`Website ${hostname} added`);
+        }
+        res.send("Websites added successfully");
+      } catch (error) {
+        console.error('Error adding websites:', error);
+        res.status(500).send("Internal Server Error");
+      }
+})
+router.get('/url-info',async (req,res)=>{
+        try {
+            let url = req.body.url;
+            if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+                url = `http://${url}`;
+            }
+            const hostname = new URL(url).hostname;
+            const website = await Website.findOne({ hostname
+            });
+            if (!website) {
+              return res.status(404).send("Website not found");
+            }
+            res.send(website);
+            } catch (error) {
+            console.error('Error fetching website:', error);
+            res.status(500).send("Internal Server Error");
+            }
+    }
+)
+
+
+
 
 
 

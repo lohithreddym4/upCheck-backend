@@ -55,9 +55,15 @@ const WebsiteSchema = new mg.Schema({
     type: String,
     required: true,
   },
+  description:{
+    type:String,
+  },
   status: {
     type: String,
     default: 'up',
+  },
+  whois: {
+    type: Object,
   },
   comments: [CommentSchema],
   reports:[Reports],

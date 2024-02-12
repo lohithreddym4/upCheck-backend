@@ -13,7 +13,7 @@ const Website = require('./Models/Websites');
 const Disrupts = require('./Models/Disrupts');
 const upCheck = require('./upCheck/upCheck');
 
-cron.schedule('* */20 * * * *', async () => {
+cron.schedule('* */60 * * * *', async () => {
     console.log('Running the cron job...');
     const websites = await Website.find().select('url');
     let i=0;

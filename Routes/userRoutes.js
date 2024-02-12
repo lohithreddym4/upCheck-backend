@@ -359,7 +359,11 @@ router.post('/remove-disrupt', async (req, res) => {
 });
 router.get('/get-disrupts', async (req, res) => {
     try {
-        const reports = await Website.find({},'disrupts');
+        let url=req.body.url;
+        if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+            url = `http://${url}`;
+        }
+        const reports = await Website.find({url},'disrupts');
         res.send(reports);
     } catch (error) {
         console.error('Error fetching reports:', error);

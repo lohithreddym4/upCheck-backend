@@ -24,8 +24,11 @@ cron.schedule('* */20 * * * *', async () => {
             const newReport = {
                 date: new Date().toUTCString()
             };
-            Website.findOne({url:website.url}).disrupts.push(newReport);
-            await website.save();
+            await Website.findOneAndUpdate(
+                { url: website.url },
+                { $push: { disrupts: newReport } },
+              );
+              
             const url = website.url;
  const existingReports = await Disrupts.findOne({ hostname:new URL(url).hostname });
 

@@ -360,7 +360,6 @@ router.post('/add-disrupt', async (req, res) => {
         const newReport = {
             date: new Date().toUTCString()
         };
-
         website.disrupts.push(newReport);
         await website.save();
         res.send("Report added successfully");

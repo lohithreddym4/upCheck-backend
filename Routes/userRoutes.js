@@ -23,7 +23,7 @@ router.post('/add-website', async (req, res) => {
                 const status = await upCheck(url);
                 const whois = await getWhoisData(hostname);
                 let domain=whois.domain_name[0];
-                let name=domain.substring(0,domain.lastIndexOf('.')) || hostname.startsWith('www.') ? hostname.substring(4,hostname.lastIndexOf('.')) : hostname.substring(0,hostname.lastIndexOf('.'));
+                let name=hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'))
                 console.log(name);
                 const newSite = new Website({ name, url,hostname, whois });
                 await newSite.save();
@@ -439,7 +439,7 @@ router.post('/add-multiple-urls',async(req,res)=>{
           const status = await upCheck(url);
             const whois = await getWhoisData(hostname);
             let domain=whois.domain_name[0];
-            let name=domain.slice(0,domain.lastIndexOf('.')) || hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'));
+            let name=hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'))
             const newSite = new Website({ name, url,status,hostname, whois });
             await newSite.save();
             console.log(`Website ${hostname} added`);

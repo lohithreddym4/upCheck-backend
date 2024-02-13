@@ -10,80 +10,103 @@ router.use(express.json());
 const cors = require('cors');
 router.use(cors());
 const Website = require('../Models/Website');
-const Report=require('../Models/Report');
+const Reports=require('../Models/Report');
+const Disrupts=require('../Models/Disrupt');
+const upCheck = require('../upCheck/upCheck');
+const getWhoisData = require('../utils`/whois.js');
 
-router.post('/create-user', [
-    check('name', "Enter valid name").isLength({ min: 3 }),
-    check("email", "Enter valid email").isEmail(),
-    check("password", "Enter valid password with minimum 5 characters").isLength({ min: 5 })
-  ], async (req, res) => {
-    let user = await User.findOne({ email: req.body.email })
-    if (user) {
-      return res.status(400).json({ error: "User already exists" })
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: errors.array() })
-    }
-    const salt = await bcrypt.genSalt(10)
-    const secPassword = await bcrypt.hash(req.body.password, salt)
-    
-    user = await User.create(
-      {
-        name: req.body.name,
-        email: req.body.email,
-        password: secPassword,
-      }
-    )
-    await user.save()
-    return res.json({ status: "success", user })
-})
-router.post('/forgot-pass', [
-    check("email", "Enter valid email").isEmail(),
-    check("password", "Enter valid password with minimum 5 characters").isLength({ min: 5 })
-  ], async (req, res) => {
-    let user = await User.findOne({ email: req.body.email })
-    if (!user) {
-      return res.status(404).json({ error: "User Not Found" })
-    }
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: errors.array() })
-    }
-    const salt = await bcrypt.genSalt(10)
-    const secPassword = await bcrypt.hash(req.body.password, salt);
-     user.password=secPassword;
-    await user.save()
-    return res.json({ status: "success", user })
-})
-router.get('/', (req, res) => {
-res.send('Admin Homepage');
-})
-router.post('/login', [
-    check("email", "enter valid email").isEmail(),
-    check("password", "enter valid password").isLength({ min: 5 })
+
+
+const hashPassword = async (password) => {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+  };
+  
+  router.post('/create-user', [
+    check('name', 'Enter a valid name').isLength({ min: 3 }),
+    check('email', 'Enter a valid email').isEmail(),
+    check('password', 'Enter a valid password with minimum 5 characters').isLength({ min: 5 }),
   ], async (req, res) => {
     try {
-      let user = await User.findOne({ email: req.body.email })
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+  
+      let user = await User.findOne({ email: req.body.email });
+      if (user) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+  
+      const hashedPassword = await hashPassword(req.body.password);
+  
+      user = await User.create({
+        name: req.body.name,
+        email: req.body.email,
+        password: hashedPassword,
+      });
+      return res.json({ status: 'success', user });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  router.post('/forgot-pass', [
+    check('email', 'Enter a valid email').isEmail(),
+    check('password', 'Enter a valid password with minimum 5 characters').isLength({ min: 5 }),
+  ], async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+  
+      let user = await User.findOne({ email: req.body.email });
       if (!user) {
-        return res.status(400).json({ error: "Wrong Credentials!!!" })
+        return res.status(404).json({ error: 'User Not Found' });
       }
-      const isMatch = await bcrypt.compare(req.body.password, user.password)
+  
+      const hashedPassword = await hashPassword(req.body.password);
+      user.password = hashedPassword;
+      await user.save();
+      return res.json({ status: 'success', user });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+  router.post('/login', [
+    check('email', 'Enter a valid email').isEmail(),
+    check('password', 'Enter a valid password').isLength({ min: 5 }),
+  ], async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+  
+      let user = await User.findOne({ email: req.body.email });
+      if (!user) {
+        return res.status(400).json({ error: 'Wrong Credentials!!!' });
+      }
+  
+      const isMatch = await bcrypt.compare(req.body.password, user.password);
       if (!isMatch) {
-        return res.status(400).json({ error: "Wrong Credentials!!!" })
+        return res.status(400).json({ error: 'Wrong Credentials!!!' });
       }
-      const data = {
-        user: {
-          id: user.id
-        }
-      }
-      const authToken = jwt.sign(data, jwtSecret)
-      res.json({ status: "success", name:user.name ,authToken,userid:user.userid })
+  
+      const authToken = jwt.sign({ email: user.email }, jwtSecret);
+      res.json({ status: 'success', name: user.name, authToken, email: user.email });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Internal Server Error');
     }
-    catch (error) {
-      res.status(500).send("Internal Server Error")
-    }
-})
+  });
+  
+  router.get('/', (req, res) => {
+    res.send('Admin Homepage');
+  });
 router.post('/getuser', fetchuser, async (req, res) => {
     try {
       let userId = req.user.id

@@ -65,6 +65,13 @@ const WebsiteSchema = new mg.Schema({
   whois: {
     type: Object,
   },
+  feedback_options:{
+    type:Array,
+    default:['Login','Inaccessible','Error Recieved','Slow connecting']
+  },
+  last_checked: {
+    type: String,
+  },
   comments: [CommentSchema],
   reports:[Reports],
   disrupts:[Disrupts]

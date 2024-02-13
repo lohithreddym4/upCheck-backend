@@ -13,13 +13,13 @@ const Website = require('./Models/Websites');
 const Disrupts = require('./Models/Disrupts');
 const upCheck = require('./upCheck/upCheck');
 
-cron.schedule('* */60 * * * *', async () => {
+cron.schedule('0 */1 * * *', async () => {
     console.log('Running the cron job...');
     const websites = await Website.find().select('url');
     let i=0;
     for (const website of websites) {
         const status = await upCheck(website.url);
-        await Website.findOneAndUpdate({url: website.url}, {status: status ? 'up' : 'down'});
+        await Website.findOneAndUpdate({url: website.url},{status: status ? 'up' : 'down',last_checked: new Date().toUTCString()});
         if(!status) {
             const newReport = {
                 date: new Date().toUTCString()

@@ -356,4 +356,16 @@ router.get('/get-recent-disrupts',async(req,res)=>{
         res.status(500).send("Internal Server Error");
     }
 })
+router.put('/update-report-options/:id',async(req,res)=>{
+    try {
+        const website = await Website.findByIdAndUpdate({ _id: req.params.id }, { $set: { feedback_options: req.body.feedback_options } })
+        res.send(website);
+        } catch (error) {
+          console.error('Error updating website:', error);
+        res.status(500).send("Internal Server Error");
+        }
+}
+)
+
+
 module.exports = router;

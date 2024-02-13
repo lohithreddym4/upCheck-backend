@@ -447,6 +447,25 @@ router.get('/url-info',async (req,res)=>{
             }
     }
 )
+router.post('/update-web-status',async(req,res)=>{
+    try {
+        let { url,status } = req.body;
+        if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+            url = `http://${url}`;
+        }
+        const website = await Website.findOne({ hostname: new URL(url).hostname});
+        if (!website) {
+            return res.status(404).send("Website not found");
+        }
+        website.status=status;
+        website.last_checked=new Date().toUTCString();
+        await website.save();
+        res.send("Status updated successfully");
+    } catch (error) {
+        console.error('Error updating status:', error);
+        res.status(500).send("Internal Server Error");
+    }
+})
 
 
 

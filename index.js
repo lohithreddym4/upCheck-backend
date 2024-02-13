@@ -19,7 +19,7 @@ cron.schedule('0 */1 * * *', async () => {
     let i=0;
     for (const website of websites) {
         const status = await upCheck(website.url);
-        await Website.findOneAndUpdate({url: website.url},{status: status ? 'up' : 'down',last_checked: new Date().toUTCString()});
+        await Website.findOneAndUpdate({url: website.url},{status: status,last_checked: new Date().toUTCString()});
         if(!status) {
             const newReport = {
                 date: new Date().toUTCString()

@@ -117,34 +117,34 @@ router.post('/getuser', fetchuser, async (req, res) => {
     }
 })
 router.post('/add-multiple-urls',async(req,res)=>{
-    try {
-        let urls = req.body.urls;
-        let i=0;
-        for (const url of urls) {
-            if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
-                if(url.startsWith('www.')){
-                    urls[i] = `http://${url}`;
-                }
-            }
-          const hostname = new URL(url).hostname;
-          const existingSite = await Website.findOne({ hostname });
-          if (existingSite) {
-            console.log(`Website ${hostname} already exists`);
-            continue;
+  try {
+      let urls = req.body.urls;
+      let i=0;
+      for (const url of urls) {
+          if (!(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('www.'))) {
+              if(url.startsWith('www.')){
+                  urls[i] = `http://${url}`;
+              }
           }
-          const status = await upCheck(url);
-            const whois = await getWhoisData(hostname);
-            let domain=whois.domain_name[0];
-            let name=hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'))
-            const newSite = new Website({ name, url,status,hostname, whois });
-            await newSite.save();
-            console.log(`Website ${hostname} added`);
+        const hostname = new URL(url).hostname;
+        const existingSite = await Website.findOne({ hostname });
+        if (existingSite) {
+          console.log(`Website ${hostname} already exists`);
+          continue;
         }
-        res.send("Websites added successfully");
-      } catch (error) {
-        console.error('Error adding websites:', error);
-        res.status(500).send("Internal Server Error");
+        const status = await upCheck(url);
+          const whois = await getWhoisData(hostname);
+          let domain=whois.domain_name[0];
+          let name=hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'))
+          const newSite = new Website({ name, url,status,hostname, whois,last_checked:new Date().toUTCString()});
+          await newSite.save();
+          console.log(`Website ${hostname} added`);
       }
+      res.send("Websites added successfully");
+    } catch (error) {
+      console.error('Error adding websites:', error);
+      res.status(500).send("Internal Server Error");
+    }
 })
 router.post('/add-url',async(req,res)=>{
     try {

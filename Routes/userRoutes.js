@@ -418,7 +418,7 @@ router.post('/add-multiple-urls',async(req,res)=>{
             const whois = await getWhoisData(hostname);
             let domain=whois.domain_name[0];
             let name=hostname.startsWith('www.') ? hostname.slice(4,hostname.lastIndexOf('.')) : hostname.slice(0,hostname.lastIndexOf('.'))
-            const newSite = new Website({ name, url,status,hostname, whois });
+            const newSite = new Website({ name, url,status,hostname, whois,last_checked:new Date().toUTCString()});
             await newSite.save();
             console.log(`Website ${hostname} added`);
         }
